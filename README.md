@@ -19,18 +19,6 @@ Paths below are relative to `src/` and the package namespace.
 
 Implementation helpers retain an `@internal` boundary; a responsibility namespace does not make them extension points.
 
-### Public namespaces
-
-Use the following component declarations:
-
-- `Constants\ReentryDescriptor`
-- `Execution\Callback`
-- `Execution\CallbackRunner`
-- `Execution\Scanned`
-- `Process\EntryPoint`
-- `Process\EntryPointProbe`
-- `Process\ReentryContext`
-
 ## Processors
 
 The package owns `SuperKernel\ScanIsolation\Contract\ScanProcessorInterface` and provides four implementations:
