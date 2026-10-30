@@ -226,7 +226,7 @@ final class ExitStatusTest extends TestCase
                         fwrite(STDOUT, "child stdout\n");
                         fwrite(STDERR, "child stderr\n");
                         if ('wrong-ack' === $mode) {
-                            $ack = fopen('php://fd/' . SuperKernel\ScanIsolation\Process\ReentryContext::RESULT_DESCRIPTOR, 'wb');
+                            $ack = fopen('php://fd/' . SuperKernel\ScanIsolation\Constants\ReentryDescriptor::Result->value, 'wb');
                             ftruncate($ack, 0);
                             fwrite($ack, 'wrong-token');
                             fclose($ack);

@@ -1,5 +1,7 @@
 <?php
 
+/** @noinspection PhpComposerExtensionStubsInspection Optional ext-pcntl is probed by support() before execute(). */
+
 declare(strict_types=1);
 
 namespace SuperKernel\ScanIsolation\Processor;

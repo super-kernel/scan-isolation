@@ -6,6 +6,7 @@ namespace SuperKernel\ScanIsolation\Processor;
 
 use Random\RandomException;
 use ReflectionException;
+use SuperKernel\ScanIsolation\Constants\ReentryDescriptor;
 use SuperKernel\ScanIsolation\Contract\ScanProcessorInterface;
 use SuperKernel\ScanIsolation\Exception\ScanProcessFailedException;
 use SuperKernel\ScanIsolation\Execution\Callback;
@@ -75,7 +76,15 @@ final class ProcessScanProcessor implements ScanProcessorInterface
             || !is_resource($standardError)
             || !is_resource($result)
         ) {
-            self::closeStreams($standardOutput, $standardError, $result);
+            foreach ([
+                $standardOutput,
+                $standardError,
+                $result,
+            ] as $stream) {
+                if (is_resource($stream)) {
+                    fclose($stream);
+                }
+            }
 
             throw new ScanProcessFailedException(127, 'Unable to allocate callback process streams.');
         }
@@ -92,9 +101,9 @@ final class ProcessScanProcessor implements ScanProcessorInterface
                         'pipe',
                         'r',
                     ],
-                    1                                 => $standardOutput,
-                    2                                 => $standardError,
-                    ReentryContext::RESULT_DESCRIPTOR => $result,
+                    1                                => $standardOutput,
+                    2                                => $standardError,
+                    ReentryDescriptor::Result->value => $result,
                 ],
                 $pipes,
                 env_vars: $environment,
@@ -122,18 +131,21 @@ final class ProcessScanProcessor implements ScanProcessorInterface
                 );
             }
 
-            $output = self::readStream($standardOutput);
-            $error = self::readStream($standardError);
-            $resultToken = trim(self::readStream($result));
+            rewind($standardOutput);
+            $output = (string) stream_get_contents($standardOutput);
+            rewind($standardError);
+            $error = (string) stream_get_contents($standardError);
+            rewind($result);
+            $resultToken = trim((string) stream_get_contents($result));
 
             if (null === $failure && $token !== $resultToken) {
                 throw new ScanProcessFailedException(
                     127,
-                    self::failureOutput(
+                    trim(implode("\n", [
                         'The reentered application did not execute the callback.',
                         $output,
                         $error,
-                    ),
+                    ])),
                 );
             }
 
@@ -164,7 +176,15 @@ final class ProcessScanProcessor implements ScanProcessorInterface
                     proc_close($process);
                 }
 
-                self::closeStreams($standardOutput, $standardError, $result);
+                foreach ([
+                    $standardOutput,
+                    $standardError,
+                    $result,
+                ] as $stream) {
+                    if (is_resource($stream)) {
+                        fclose($stream);
+                    }
+                }
             } catch (Throwable $cleanupFailure) {
                 if (null === $failure) {
                     throw $cleanupFailure;
@@ -183,28 +203,5 @@ final class ProcessScanProcessor implements ScanProcessorInterface
             && function_exists('proc_close')
             && function_exists('proc_open')
             && function_exists('putenv');
-    }
-
-    private static function closeStreams(mixed ...$streams): void
-    {
-        foreach ($streams as $stream) {
-            if (is_resource($stream)) {
-                fclose($stream);
-            }
-        }
-    }
-
-    /** @param resource $stream */
-    private static function readStream(mixed $stream): string
-    {
-        rewind($stream);
-        $contents = stream_get_contents($stream);
-
-        return false === $contents ? '' : $contents;
-    }
-
-    private static function failureOutput(string ...$outputs): string
-    {
-        return trim(implode("\n", $outputs));
     }
 }

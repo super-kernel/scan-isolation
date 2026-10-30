@@ -9,24 +9,15 @@ and result storage.
 
 Paths below are relative to `src/` and the package namespace.
 
-| Directory | Responsibility |
-| --- | --- |
-| `Execution` | `Callback`, `CallbackRunner`, and `Scanned`: callback validation, invocation, and phase state. |
-| `Process` | `EntryPoint` and `ReentryContext`: CLI command reconstruction and child acknowledgement. |
-| `Processor` | PCNTL, Process, Exec, Null, and phase-delegating execution strategies. |
-| `Provider / Contract` | Processor selection and the public execution/phase contracts. |
+| Directory             | Responsibility                                                                                                    |
+|-----------------------|-------------------------------------------------------------------------------------------------------------------|
+| `Constants`           | `ReentryDescriptor`: the file descriptor that carries the reentry acknowledgement.                                |
+| `Execution`           | `Callback`, `CallbackRunner`, and `Scanned`: callback validation, invocation, and phase state.                    |
+| `Process`             | `EntryPointProbe`, `EntryPoint`, and `ReentryContext`: entry checks, reentry commands, and child acknowledgement. |
+| `Processor`           | PCNTL, Process, Exec, Null, and phase-delegating execution strategies.                                            |
+| `Provider / Contract` | Processor selection and the public execution/phase contracts.                                                     |
 
 Implementation helpers retain an `@internal` boundary; a responsibility namespace does not make them extension points.
-
-### Public namespaces
-
-Use the following component declarations:
-
-- `Execution\Callback`
-- `Execution\CallbackRunner`
-- `Execution\Scanned`
-- `Process\EntryPoint`
-- `Process\ReentryContext`
 
 ## Processors
 
