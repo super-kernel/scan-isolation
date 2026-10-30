@@ -6,32 +6,29 @@ namespace SuperKernel\ScanIsolation\Process;
 
 use SuperKernel\ScanIsolation\Exception\ScanProcessorUnavailableException;
 
-use function array_all;
-use function array_is_list;
 use function array_slice;
-use function is_array;
-use function is_file;
-use function is_readable;
-use function is_string;
 
 use const PHP_BINARY;
-use const PHP_SAPI;
 
 /**
  * @internal
  */
 final readonly class EntryPoint
 {
-    /**
-     * @param list<string> $arguments
-     */
-    private function __construct(private string $script, private array $arguments)
-    {
-    }
+    /** @var non-empty-string */
+    private string $script;
 
-    public static function current(): self
+    /** @var list<string> */
+    private array $arguments;
+
+    /**
+     * Captures the current CLI entry script and its arguments.
+     *
+     * @throws ScanProcessorUnavailableException When the process has no readable CLI entry script or string argv values
+     */
+    public function __construct()
     {
-        if (!self::isAvailable()) {
+        if (!EntryPointProbe::isAvailable()) {
             throw new ScanProcessorUnavailableException(
                 'Callback process reentry requires a readable CLI entry script and string argv values.',
             );
@@ -41,29 +38,21 @@ final readonly class EntryPoint
         $script = $_SERVER['SCRIPT_FILENAME'];
         /** @var list<string> $arguments */
         $arguments = array_slice($_SERVER['argv'], 1);
+        $this->script = $script;
+        $this->arguments = $arguments;
+    }
 
-        return new self($script, $arguments);
+    /**
+     * @throws ScanProcessorUnavailableException When the process has no readable CLI entry script or string argv values
+     */
+    public static function current(): self
+    {
+        return new self();
     }
 
     public static function isAvailable(): bool
     {
-        if ('cli' !== PHP_SAPI) {
-            return false;
-        }
-
-        $script = $_SERVER['SCRIPT_FILENAME'] ?? null;
-
-        if (!is_string($script) || '' === $script || !is_file($script) || !is_readable($script)) {
-            return false;
-        }
-
-        $arguments = $_SERVER['argv'] ?? [];
-
-        if (!is_array($arguments) || !array_is_list($arguments)) {
-            return false;
-        }
-
-        return array_all($arguments, fn($argument) => is_string($argument));
+        return EntryPointProbe::isAvailable();
     }
 
     /**

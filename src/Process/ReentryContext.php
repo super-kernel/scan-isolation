@@ -9,6 +9,7 @@ use Random\RandomException;
 use ReflectionException;
 use ReflectionFunction;
 use RuntimeException;
+use SuperKernel\ScanIsolation\Constants\ReentryDescriptor;
 use SuperKernel\ScanIsolation\Exception\ScanProcessFailedException;
 use SuperKernel\ScanIsolation\Execution\Callback;
 use SuperKernel\ScanIsolation\Execution\CallbackRunner;
@@ -34,11 +35,31 @@ use function substr;
  */
 final readonly class ReentryContext
 {
-    public const int RESULT_DESCRIPTOR = 6;
+    /** @var resource */
+    private mixed $resultStream;
 
-    /** @param resource $resultStream */
-    private function __construct(private string $token, private mixed $resultStream)
+    /**
+     * Consumes the reentry envelope and opens the dedicated result descriptor for the matching callback.
+     *
+     * @param string $variable Environment variable that carries the reentry envelope
+     * @param string $token    Parent-issued result token acknowledged before the callback runs
+     *
+     * @throws ScanProcessFailedException When clearing the envelope fails or the result descriptor is unavailable
+     */
+    public function __construct(string $variable, private string $token)
     {
+        if (!putenv($variable)) {
+            throw new ScanProcessFailedException(127, 'Unable to clear the callback reentry token.');
+        }
+
+        unset($_ENV[$variable], $_SERVER[$variable]);
+
+        $resultStream = @fopen('php://fd/' . ReentryDescriptor::Result->value, 'wb');
+        if (!is_resource($resultStream)) {
+            throw new ScanProcessFailedException(127, 'The callback reentry result descriptor is unavailable.');
+        }
+
+        $this->resultStream = $resultStream;
     }
 
     /**
@@ -95,18 +116,7 @@ final readonly class ReentryContext
             return false;
         }
 
-        if (!putenv($variable)) {
-            throw new ScanProcessFailedException(127, 'Unable to clear the callback reentry token.');
-        }
-
-        unset($_ENV[$variable], $_SERVER[$variable]);
-
-        $resultStream = @fopen('php://fd/' . self::RESULT_DESCRIPTOR, 'wb');
-        if (!is_resource($resultStream)) {
-            throw new ScanProcessFailedException(127, 'The callback reentry result descriptor is unavailable.');
-        }
-
-        return new self($matches[1], $resultStream);
+        return new self($variable, $matches[1]);
     }
 
     /**
@@ -115,18 +125,12 @@ final readonly class ReentryContext
      */
     public function run(Callback $callback): never
     {
-        self::write($this->resultStream, $this->token . "\n");
-        new CallbackRunner($callback)->run();
-    }
-
-    /** @param resource $stream */
-    private static function write(mixed $stream, string $contents): void
-    {
+        $contents = $this->token . "\n";
         $length = strlen($contents);
         $offset = 0;
 
         while ($offset < $length) {
-            $written = @fwrite($stream, substr($contents, $offset));
+            $written = @fwrite($this->resultStream, substr($contents, $offset));
 
             if (false === $written || 0 === $written) {
                 throw new RuntimeException('Unable to write the callback reentry result.');
@@ -135,8 +139,10 @@ final readonly class ReentryContext
             $offset += $written;
         }
 
-        if (!@fflush($stream)) {
+        if (!@fflush($this->resultStream)) {
             throw new RuntimeException('Unable to flush the callback reentry result.');
         }
+
+        new CallbackRunner($callback)->run();
     }
 }

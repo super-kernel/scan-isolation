@@ -6,6 +6,7 @@ namespace SuperKernel\ScanIsolation\Processor;
 
 use Random\RandomException;
 use ReflectionException;
+use SuperKernel\ScanIsolation\Constants\ReentryDescriptor;
 use SuperKernel\ScanIsolation\Contract\ScanProcessorInterface;
 use SuperKernel\ScanIsolation\Exception\ScanProcessFailedException;
 use SuperKernel\ScanIsolation\Execution\Callback;
@@ -77,7 +78,7 @@ final class ExecScanProcessor implements ScanProcessorInterface
             $tokens = array_map(escapeshellarg(...), EntryPoint::current()->command());
             $command = self::REENTRY_VARIABLE . '=' . escapeshellarg($token . ':' . $callbackId)
                 . ' ' . implode(' ', $tokens)
-                . ' ' . ReentryContext::RESULT_DESCRIPTOR . '>' . escapeshellarg($resultPath)
+                . ' ' . ReentryDescriptor::Result->value . '>' . escapeshellarg($resultPath)
                 . ' 2>&1';
             $output = [];
             $exitCode = -1;
@@ -92,13 +93,13 @@ final class ExecScanProcessor implements ScanProcessorInterface
 
             $processOutput = implode(PHP_EOL, $output);
 
-            if (null === $failure && $token !== trim(self::readFile($resultPath))) {
+            if (null === $failure && $token !== trim((string) file_get_contents($resultPath))) {
                 throw new ScanProcessFailedException(
                     127,
-                    self::failureOutput(
+                    trim(implode("\n", [
                         'The reentered application did not execute the callback.',
                         $processOutput,
-                    ),
+                    ])),
                 );
             }
 
@@ -124,17 +125,5 @@ final class ExecScanProcessor implements ScanProcessorInterface
         }
 
         $callback->run(true);
-    }
-
-    private static function failureOutput(string ...$outputs): string
-    {
-        return trim(implode("\n", $outputs));
-    }
-
-    private static function readFile(string $path): string
-    {
-        $contents = file_get_contents($path);
-
-        return false === $contents ? '' : $contents;
     }
 }
