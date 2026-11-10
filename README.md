@@ -4,6 +4,9 @@
 
 # SuperKernel Scan Isolation
 
+> [!WARNING]
+> This package is deprecated and no longer maintained. Since SuperKernel 1.0.0-alpha.2, SKERNEL collects an application's classes and attributes in a process of its own when it builds the project, and an application no longer scans at start, so applications no longer install this package.
+
 `super-kernel/scan-isolation` executes caller-supplied work in isolation and optionally runs a completion phase in the calling PHP process. It accepts PHP callables, including Closures, functions, invokable objects, and `[$object, 'method']` callbacks. It owns execution and callback-parameter validation; callers own discovery, metadata, and result storage.
 
 ## Processors

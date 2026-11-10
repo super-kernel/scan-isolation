@@ -3,6 +3,7 @@
     "description": "Anonymous scan callback isolation for SuperKernel.",
     "type": "library",
     "license": "MIT",
+    "abandoned": true,
     "require": {
         "php": ">=8.4.27 <8.5",
         "super-kernel/attribute": "self.version"
