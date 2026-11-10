@@ -4,6 +4,9 @@
 
 # SuperKernel Scan Isolation
 
+> [!WARNING]
+> 此包已废弃，不再维护。自 SuperKernel 1.0.0-alpha.2 起，SKERNEL 在构建项目时用独立的进程收集应用的类和注解，应用启动时不再扫描，因此不再安装此包。
+
 `super-kernel/scan-isolation` 在隔离环境中执行调用方提供的工作，并可选地在调用方 PHP 进程中运行一个完成阶段。它接受 PHP 可调用值，包括 Closure、函数、可调用对象和 `[$object, 'method']` 回调。它负责执行和回调参数校验；发现、元数据和结果存储由调用方负责。
 
 ## 处理器
